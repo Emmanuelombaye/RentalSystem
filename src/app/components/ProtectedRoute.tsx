@@ -13,7 +13,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
             if (session) {
                 setAuthenticated(true);
             } else {
-                navigate("/login");
+                navigate("/auth/login");
             }
             setLoading(false);
         });
@@ -23,7 +23,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
                 setAuthenticated(true);
             } else {
                 setAuthenticated(false);
-                navigate("/login");
+                navigate("/auth/login");
             }
         });
 
