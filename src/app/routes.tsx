@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { RootLayout } from "./layouts/RootLayout";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { Login } from "./pages/auth/Login";
@@ -58,10 +58,7 @@ export const router = createBrowserRouter([
       },
       {
         index: true,
-        Component: () => {
-          window.location.href = "/dashboard";
-          return null;
-        },
+        element: <Navigate to="/dashboard" replace />,
       },
       { path: "*", Component: NotFound },
     ],

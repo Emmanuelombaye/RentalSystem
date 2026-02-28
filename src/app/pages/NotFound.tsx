@@ -15,7 +15,7 @@ export function NotFound() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link to="/">
+          <Link to="/dashboard">
             <Button>
               <Home className="h-4 w-4 mr-2" />
               Go to Dashboard
