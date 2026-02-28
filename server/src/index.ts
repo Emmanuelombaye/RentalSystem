@@ -103,36 +103,45 @@ app.get("/api/dashboard/stats", async (req, res) => {
 // --- Property Endpoints ---
 app.get("/api/properties", async (req, res) => {
     try {
-        const properties = await prisma.property.findMany({
-            include: { units: true }
-        });
+        const { data: properties, error } = await supabase
+            .from("Property")
+            .select("*, units:Unit(*)");
+
+        if (error) throw error;
         res.json(properties);
     } catch (error) {
-        res.status(500).json({ error: "Failed to fetch properties" });
+        console.error("Fetch Properties Error:", error);
+        res.status(500).json({ error: "Failed to fetch properties via Supabase REST" });
     }
 });
 
 // --- Unit Endpoints ---
 app.get("/api/units", async (req, res) => {
     try {
-        const units = await prisma.unit.findMany({
-            include: { property: true, tenant: true }
-        });
+        const { data: units, error } = await supabase
+            .from("Unit")
+            .select("*, property:Property(*), tenant:Tenant(*)");
+
+        if (error) throw error;
         res.json(units);
     } catch (error) {
-        res.status(500).json({ error: "Failed to fetch units" });
+        console.error("Fetch Units Error:", error);
+        res.status(500).json({ error: "Failed to fetch units via Supabase REST" });
     }
 });
 
 // --- Tenant Endpoints ---
 app.get("/api/tenants", async (req, res) => {
     try {
-        const tenants = await prisma.tenant.findMany({
-            include: { units: true }
-        });
+        const { data: tenants, error } = await supabase
+            .from("Tenant")
+            .select("*, units:Unit(*)");
+
+        if (error) throw error;
         res.json(tenants);
     } catch (error) {
-        res.status(500).json({ error: "Failed to fetch tenants" });
+        console.error("Fetch Tenants Error:", error);
+        res.status(500).json({ error: "Failed to fetch tenants via Supabase REST" });
     }
 });
 
