@@ -2,7 +2,9 @@
  * API Utility for Backend Communication
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api');
+const API_BASE_URL = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+    ? "http://localhost:5000/api"
+    : "/api";
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {

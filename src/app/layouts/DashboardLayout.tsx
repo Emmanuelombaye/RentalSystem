@@ -18,7 +18,8 @@ import {
   X,
   Sun,
   Moon,
-  ChevronDown
+  ChevronDown,
+  LogOut
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "../components/ui/button";
@@ -148,6 +149,13 @@ export function DashboardLayout() {
               <SettingsIcon className="h-5 w-5 shrink-0" />
               <span className="text-sm font-medium">Settings</span>
             </Link>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <LogOut className="h-5 w-5 shrink-0" />
+              <span className="text-sm font-medium">Log Out</span>
+            </button>
           </div>
         </div>
       </aside>
