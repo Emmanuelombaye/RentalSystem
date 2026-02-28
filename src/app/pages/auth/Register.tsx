@@ -1,257 +1,190 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { Building2, Mail, Lock, User, Chrome, Github, Building } from "lucide-react";
+import { useNavigate, Link } from "react-router";
+import { supabase } from "../../lib/supabase";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Checkbox } from "../../components/ui/checkbox";
-import { Separator } from "../../components/ui/separator";
-import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card";
+import { Building2, Lock, Mail, User, ArrowRight, Loader2, Sparkles, AlertCircle, Building } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function Register() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    company: "",
-    password: "",
-    confirmPassword: "",
-    role: "landlord",
-  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock registration - in production, this would register with backend
-    navigate("/");
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      });
+
+      if (error) throw error;
+      setSuccess(true);
+      setTimeout(() => navigate("/auth/login"), 3000);
+    } catch (err: any) {
+      setError(err.message || "Could not complete registration");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center space-y-4 max-w-sm"
+        >
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="h-8 w-8 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold font-heading">Check your email</h2>
+          <p className="text-muted-foreground">
+            We've sent a verification link to <span className="font-semibold text-foreground">{email}</span>. Please verify your account to continue.
+          </p>
+          <Button variant="outline" className="mt-4" onClick={() => navigate("/auth/login")}>
+            Back to Login
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-background">
-      <div className="w-full max-w-2xl space-y-8">
-        {/* Logo */}
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
-            <Building2 className="w-7 h-7 text-white" />
-          </div>
-          <div className="text-center space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight">Create your account</h2>
-            <p className="text-muted-foreground">
-              Start managing your properties in minutes
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden p-6 md:p-12">
+      {/* Background Decor */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
 
-        <div className="bg-card border border-border rounded-xl p-6 lg:p-8 shadow-sm">
-          {/* Social signup */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <Button variant="outline" className="w-full">
-              <Chrome className="mr-2 h-4 w-4" />
-              Google
-            </Button>
-            <Button variant="outline" className="w-full">
-              <Github className="mr-2 h-4 w-4" />
-              GitHub
-            </Button>
+      <div className="w-full max-w-[440px] relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary shadow-2xl shadow-primary/20 mb-4">
+            <Building2 className="h-8 w-8 text-primary-foreground" />
           </div>
+          <h1 className="text-3xl font-bold tracking-tight font-heading mb-2">Join Elite Living</h1>
+          <p className="text-muted-foreground">Begin your premium management journey</p>
+        </motion.div>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <Separator />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with email
-              </span>
-            </div>
-          </div>
+        <Card className="border-glass-border bg-glass backdrop-blur-xl shadow-glass">
+          <CardHeader className="space-y-1 pb-6 text-center">
+            <CardTitle className="text-2xl font-bold font-heading">Create Account</CardTitle>
+            <CardDescription>
+              Enter your details to register as a manager
+            </CardDescription>
+          </CardHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Role selection */}
-            <div className="space-y-3">
-              <Label>I am a...</Label>
-              <RadioGroup
-                value={formData.role}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, role: value })
-                }
-                className="grid grid-cols-1 sm:grid-cols-3 gap-3"
-              >
-                <div>
-                  <RadioGroupItem
-                    value="landlord"
-                    id="landlord"
-                    className="peer sr-only"
-                  />
-                  <Label
-                    htmlFor="landlord"
-                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+          <form onSubmit={handleRegister}>
+            <CardContent className="space-y-4">
+              <AnimatePresence mode="wait">
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium flex items-center gap-2"
                   >
-                    <Building className="mb-2 h-6 w-6" />
-                    <span className="text-sm font-medium">Landlord</span>
-                  </Label>
-                </div>
-                <div>
-                  <RadioGroupItem
-                    value="manager"
-                    id="manager"
-                    className="peer sr-only"
-                  />
-                  <Label
-                    htmlFor="manager"
-                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                  >
-                    <User className="mb-2 h-6 w-6" />
-                    <span className="text-sm font-medium">Property Manager</span>
-                  </Label>
-                </div>
-                <div>
-                  <RadioGroupItem
-                    value="tenant"
-                    id="tenant"
-                    className="peer sr-only"
-                  />
-                  <Label
-                    htmlFor="tenant"
-                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                  >
-                    <User className="mb-2 h-6 w-6" />
-                    <span className="text-sm font-medium">Tenant</span>
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            {/* Name fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">First name</Label>
-                <Input
-                  id="firstName"
-                  placeholder="John"
-                  value={formData.firstName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, firstName: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last name</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Doe"
-                  value={formData.lastName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, lastName: e.target.value })
-                  }
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="john@example.com"
-                  className="pl-9"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Company (optional) */}
-            <div className="space-y-2">
-              <Label htmlFor="company">
-                Company name <span className="text-muted-foreground">(optional)</span>
-              </Label>
-              <Input
-                id="company"
-                placeholder="Acme Properties"
-                value={formData.company}
-                onChange={(e) =>
-                  setFormData({ ...formData, company: e.target.value })
-                }
-              />
-            </div>
-
-            {/* Password fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Full Name</Label>
+                <div className="relative group">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                   <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    className="pl-9"
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
+                    placeholder="John Wentworth"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="pl-10 h-11 bg-background/40 border-glass-border focus-visible:ring-primary/20 transition-all"
                     required
                   />
                 </div>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Email Address</Label>
+                <div className="relative group">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                   <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    className="pl-9"
-                    value={formData.confirmPassword}
-                    onChange={(e) =>
-                      setFormData({ ...formData, confirmPassword: e.target.value })
-                    }
+                    type="email"
+                    placeholder="john@eliteliving.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 h-11 bg-background/40 border-glass-border focus-visible:ring-primary/20 transition-all"
                     required
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Terms */}
-            <div className="flex items-start space-x-2">
-              <Checkbox id="terms" required />
-              <label
-                htmlFor="terms"
-                className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Secure Password</Label>
+                <div className="relative group">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 h-11 bg-background/40 border-glass-border focus-visible:ring-primary/20 transition-all"
+                    required
+                  />
+                </div>
+              </div>
+
+              <p className="text-[10px] text-muted-foreground leading-relaxed pt-2">
+                By creating an account, you agree to our <a href="#" className="underline decoration-primary/30 underline-offset-2 hover:text-primary transition-colors">Terms of Service</a> and <a href="#" className="underline decoration-primary/30 underline-offset-2 hover:text-primary transition-colors">Privacy Policy</a>.
+              </p>
+            </CardContent>
+
+            <CardFooter className="flex flex-col gap-4 pt-2 pb-8">
+              <Button
+                type="submit"
+                className="w-full h-11 shadow-xl shadow-primary/20 font-semibold group"
+                disabled={loading}
               >
-                I agree to the{" "}
-                <a href="#" className="text-primary hover:underline">
-                  Terms of Service
-                </a>{" "}
-                and{" "}
-                <a href="#" className="text-primary hover:underline">
-                  Privacy Policy
-                </a>
-              </label>
-            </div>
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    Initialize Account
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
+              </Button>
 
-            <Button type="submit" className="w-full" size="lg">
-              Create account
-            </Button>
+              <p className="text-center text-sm text-muted-foreground mt-2">
+                Already part of the elite?{" "}
+                <Link to="/auth/login" className="font-semibold text-primary hover:underline transition-all underline-offset-4">
+                  Sign In
+                </Link>
+              </p>
+            </CardFooter>
           </form>
-        </div>
-
-        <div className="text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link to="/auth/login" className="text-primary hover:underline font-medium">
-            Sign in
-          </Link>
-        </div>
+        </Card>
       </div>
     </div>
   );

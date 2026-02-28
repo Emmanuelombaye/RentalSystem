@@ -1,20 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { 
-  Building2, 
-  Plus, 
-  Search, 
-  Filter, 
-  Grid3x3, 
+import {
+  Building2,
+  Plus,
+  Search,
+  Filter,
+  Grid3x3,
   List,
   MapPin,
-  Home,
   TrendingUp,
   MoreVertical,
   Edit,
   Trash2,
-  Eye
+  Eye,
+  Loader2
 } from "lucide-react";
+import { api } from "../../lib/api";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -35,72 +36,27 @@ import {
 import { Progress } from "../../components/ui/progress";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
-const properties = [
-  {
-    id: 1,
-    name: "Sunset Apartments",
-    address: "123 Main St, San Francisco, CA",
-    units: 24,
-    occupied: 22,
-    revenue: 28800,
-    image: "modern apartment building",
-    type: "Apartment",
-  },
-  {
-    id: 2,
-    name: "Oak Street Residences",
-    address: "456 Oak Ave, Los Angeles, CA",
-    units: 18,
-    occupied: 16,
-    revenue: 22500,
-    image: "residential building exterior",
-    type: "Apartment",
-  },
-  {
-    id: 3,
-    name: "Downtown Lofts",
-    address: "789 Market St, San Diego, CA",
-    units: 32,
-    occupied: 30,
-    revenue: 45600,
-    image: "modern loft building",
-    type: "Loft",
-  },
-  {
-    id: 4,
-    name: "Riverside Condos",
-    address: "321 River Rd, Sacramento, CA",
-    units: 16,
-    occupied: 14,
-    revenue: 19200,
-    image: "waterfront condominiums",
-    type: "Condo",
-  },
-  {
-    id: 5,
-    name: "Park View Towers",
-    address: "555 Park Blvd, Oakland, CA",
-    units: 40,
-    occupied: 38,
-    revenue: 52000,
-    image: "high rise residential tower",
-    type: "Apartment",
-  },
-  {
-    id: 6,
-    name: "Garden Estates",
-    address: "888 Garden Way, Fresno, CA",
-    units: 12,
-    occupied: 11,
-    revenue: 14400,
-    image: "suburban apartment complex",
-    type: "Apartment",
-  },
-];
-
 export function Properties() {
+  const [properties, setProperties] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const data = await api.properties.getAll();
+        setProperties(data);
+      } catch (err) {
+        setError("Failed to fetch properties. Please ensure the backend is running.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperties();
+  }, []);
 
   const filteredProperties = properties.filter((property) =>
     property.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -108,9 +64,29 @@ export function Properties() {
   );
 
   const totalProperties = properties.length;
-  const totalUnits = properties.reduce((sum, p) => sum + p.units, 0);
-  const totalOccupied = properties.reduce((sum, p) => sum + p.occupied, 0);
-  const totalRevenue = properties.reduce((sum, p) => sum + p.revenue, 0);
+  // Calculate stats from real data
+  const totalUnits = properties.reduce((sum, p) => sum + (p.units?.length || 0), 0);
+  const totalOccupied = properties.reduce((sum, p) =>
+    sum + (p.units?.filter((u: any) => u.status === 'occupied').length || 0), 0);
+  const totalRevenue = properties.reduce((sum, p) =>
+    sum + (p.units?.reduce((uSum: number, u: any) => uSum + (u.rent || 0), 0) || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center bg-destructive/5 rounded-2xl border border-destructive/10">
+        <p className="text-destructive font-semibold">{error}</p>
+        <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">Retry</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -158,7 +134,7 @@ export function Properties() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {((totalOccupied / totalUnits) * 100).toFixed(1)}%
+              {totalUnits > 0 ? ((totalOccupied / totalUnits) * 100).toFixed(1) : "0"}%
             </div>
           </CardContent>
         </Card>
@@ -231,7 +207,11 @@ export function Properties() {
       {viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredProperties.map((property) => {
-            const occupancyRate = (property.occupied / property.units) * 100;
+            const unitsTotal = property.units?.length || 0;
+            const unitsOccupied = property.units?.filter((u: any) => u.status === 'occupied').length || 0;
+            const occupancyRate = unitsTotal > 0 ? (unitsOccupied / unitsTotal) * 100 : 0;
+            const propertyRevenue = property.units?.reduce((sum: number, u: any) => sum + (u.rent || 0), 0) || 0;
+
             return (
               <Card
                 key={property.id}
@@ -243,7 +223,7 @@ export function Properties() {
                     alt={property.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <Badge className="absolute top-3 left-3">{property.type}</Badge>
+                  <Badge className="absolute top-3 left-3">{property.status}</Badge>
                   <div className="absolute top-3 right-3">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -273,7 +253,7 @@ export function Properties() {
                   </div>
                 </div>
                 <CardContent className="p-4">
-                  <Link to={`/properties/${property.id}`}>
+                  <Link to={`/dashboard/properties/${property.id}`}>
                     <h3 className="font-semibold text-lg mb-1 hover:text-primary transition-colors">
                       {property.name}
                     </h3>
@@ -287,7 +267,7 @@ export function Properties() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Occupancy</span>
                       <span className="font-medium">
-                        {property.occupied}/{property.units} units
+                        {unitsOccupied}/{unitsTotal} units
                       </span>
                     </div>
                     <Progress value={occupancyRate} className="h-2" />
@@ -298,7 +278,7 @@ export function Properties() {
                         <span>Revenue</span>
                       </div>
                       <span className="font-semibold">
-                        ${property.revenue.toLocaleString()}/mo
+                        ${propertyRevenue.toLocaleString()}/mo
                       </span>
                     </div>
                   </div>
@@ -312,7 +292,11 @@ export function Properties() {
           <CardContent className="p-0">
             <div className="divide-y">
               {filteredProperties.map((property) => {
-                const occupancyRate = (property.occupied / property.units) * 100;
+                const unitsTotal = property.units?.length || 0;
+                const unitsOccupied = property.units?.filter((u: any) => u.status === 'occupied').length || 0;
+                const occupancyRate = unitsTotal > 0 ? (unitsOccupied / unitsTotal) * 100 : 0;
+                const propertyRevenue = property.units?.reduce((sum: number, u: any) => sum + (u.rent || 0), 0) || 0;
+
                 return (
                   <div
                     key={property.id}
@@ -328,7 +312,7 @@ export function Properties() {
                     <div className="flex-1 min-w-0 space-y-3">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 flex-1">
-                          <Link to={`/properties/${property.id}`}>
+                          <Link to={`/dashboard/properties/${property.id}`}>
                             <h3 className="font-semibold text-lg hover:text-primary transition-colors">
                               {property.name}
                             </h3>
@@ -365,23 +349,23 @@ export function Properties() {
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div>
-                          <div className="text-xs text-muted-foreground mb-1">Type</div>
-                          <Badge variant="secondary">{property.type}</Badge>
+                          <div className="text-xs text-muted-foreground mb-1">Status</div>
+                          <Badge variant="secondary">{property.status}</Badge>
                         </div>
                         <div>
                           <div className="text-xs text-muted-foreground mb-1">Units</div>
-                          <div className="font-medium">{property.units}</div>
+                          <div className="font-medium">{unitsTotal}</div>
                         </div>
                         <div>
                           <div className="text-xs text-muted-foreground mb-1">Occupied</div>
                           <div className="font-medium">
-                            {property.occupied} ({occupancyRate.toFixed(0)}%)
+                            {unitsOccupied} ({occupancyRate.toFixed(0)}%)
                           </div>
                         </div>
                         <div>
                           <div className="text-xs text-muted-foreground mb-1">Revenue</div>
                           <div className="font-medium">
-                            ${property.revenue.toLocaleString()}/mo
+                            ${propertyRevenue.toLocaleString()}/mo
                           </div>
                         </div>
                       </div>

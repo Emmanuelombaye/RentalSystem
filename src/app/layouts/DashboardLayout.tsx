@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router";
-import { 
-  LayoutDashboard, 
-  Building2, 
-  Home, 
-  Users, 
-  FileText, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  LayoutDashboard,
+  Building2,
+  Home,
+  Users,
+  FileText,
+  DollarSign,
+  TrendingUp,
   Wrench,
   UserCircle,
   CreditCard,
@@ -33,6 +33,9 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { Badge } from "../components/ui/badge";
+import { CommandPalette } from "../components/CommandPalette";
+
+import { useAuth } from "../providers/AuthProvider";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -50,6 +53,7 @@ export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { theme, setTheme } = useTheme();
+  const { user, signOut } = useAuth();
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -57,6 +61,12 @@ export function DashboardLayout() {
     }
     return location.pathname.startsWith(path);
   };
+
+  const handleLogout = async () => {
+    await signOut();
+  };
+
+  const userInitial = user?.email?.[0].toUpperCase() || "U";
 
   return (
     <div className="min-h-screen bg-background">
@@ -70,18 +80,17 @@ export function DashboardLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-card border-r border-border transition-transform duration-200 ease-in-out lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-card border-r border-border transition-transform duration-200 ease-in-out lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center justify-between px-6 border-b border-border">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-foreground flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-semibold text-foreground">RentFlow</span>
+              <span className="font-bold text-foreground font-heading">Elite Living</span>
             </div>
             <Button
               variant="ghost"
@@ -102,11 +111,10 @@ export function DashboardLayout() {
                   key={item.name}
                   to={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${active
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    }`}
                 >
                   <item.icon className="h-5 w-5 shrink-0" />
                   <span className="text-sm font-medium">{item.name}</span>
@@ -120,11 +128,10 @@ export function DashboardLayout() {
             <Link
               to="/dashboard/billing"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                isActive("/dashboard/billing")
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive("/dashboard/billing")
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
             >
               <CreditCard className="h-5 w-5 shrink-0" />
               <span className="text-sm font-medium">Billing</span>
@@ -133,11 +140,10 @@ export function DashboardLayout() {
             <Link
               to="/dashboard/settings"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                isActive("/dashboard/settings")
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive("/dashboard/settings")
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
             >
               <SettingsIcon className="h-5 w-5 shrink-0" />
               <span className="text-sm font-medium">Settings</span>
@@ -160,15 +166,8 @@ export function DashboardLayout() {
           </Button>
 
           {/* Search */}
-          <div className="flex-1 max-w-md hidden sm:block">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search properties, tenants..."
-                className="pl-9 bg-background"
-              />
-            </div>
+          <div className="flex-1 hidden sm:block">
+            <CommandPalette />
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
@@ -211,13 +210,6 @@ export function DashboardLayout() {
                     </div>
                     <div className="text-xs text-muted-foreground">5 hours ago</div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex flex-col items-start gap-1 p-3">
-                    <div className="font-medium">Lease Expiring Soon</div>
-                    <div className="text-sm text-muted-foreground">
-                      Unit 201 lease expires in 30 days
-                    </div>
-                    <div className="text-xs text-muted-foreground">1 day ago</div>
-                  </DropdownMenuItem>
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -225,25 +217,29 @@ export function DashboardLayout() {
             {/* Profile */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2 pl-2 pr-3 hidden sm:flex">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>JD</AvatarFallback>
+                <Button variant="ghost" className="gap-2 pl-2 pr-3 hidden sm:flex h-10 hover:bg-accent/50 transition-colors">
+                  <Avatar className="h-8 w-8 border border-border">
+                    <AvatarFallback className="bg-primary/10 text-primary">{userInitial}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-medium">John Doe</span>
-                    <span className="text-xs text-muted-foreground">Admin</span>
+                    <span className="text-sm font-semibold truncate max-w-[120px]">
+                      {user?.email?.split('@')[0] || "User"}
+                    </span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/70">Administrator</span>
                   </div>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-56 border-glass-border bg-glass backdrop-blur-md">
+                <DropdownMenuLabel className="font-heading">My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile Settings</DropdownMenuItem>
-                <DropdownMenuItem>Billing</DropdownMenuItem>
-                <DropdownMenuItem>Team Settings</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">Profile Settings</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">Billing</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">Team Settings</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Log out</DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive cursor-pointer focus:bg-destructive focus:text-destructive-foreground" onClick={handleLogout}>
+                  Log out
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

@@ -3,11 +3,15 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "./components/ui/sonner";
 import { router } from "./routes";
 
+import { AuthProvider } from "./providers/AuthProvider";
+
 export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <RouterProvider router={router} />
-      <Toaster />
+      <AuthProvider>
+        <RouterProvider router={router} />
+        <Toaster />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

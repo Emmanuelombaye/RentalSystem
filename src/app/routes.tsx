@@ -18,6 +18,7 @@ import { TenantPortal } from "./pages/tenant-portal/TenantPortal";
 import { Billing } from "./pages/billing/Billing";
 import { Settings } from "./pages/settings/Settings";
 import { NotFound } from "./pages/NotFound";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
@@ -34,7 +35,11 @@ export const router = createBrowserRouter([
       },
       {
         path: "dashboard",
-        Component: DashboardLayout,
+        element: (
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        ),
         children: [
           { index: true, Component: Dashboard },
           { path: "properties", Component: Properties },
