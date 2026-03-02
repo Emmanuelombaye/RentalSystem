@@ -19,7 +19,8 @@ import {
   Sun,
   Moon,
   ChevronDown,
-  LogOut
+  LogOut,
+  Sparkles
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "../components/ui/button";
@@ -40,6 +41,7 @@ import { useAuth } from "../providers/AuthProvider";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Diani Rent AI", href: "/dashboard/diani-rent-ai", icon: Sparkles },
   { name: "Properties", href: "/dashboard/properties", icon: Building2 },
   { name: "Units", href: "/dashboard/units", icon: Home },
   { name: "Tenants", href: "/dashboard/tenants", icon: Users },
