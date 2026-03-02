@@ -7,83 +7,164 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Property {
+enum Role {
+  ADMIN
+  LANDLORD
+  TENANT
+}
+
+enum Status {
+  active
+  inactive
+  pending
+}
+
+model User {
   id        String   @id @default(cuid())
   name      String
-  address   String
-  type      String
-  status    String
-  units     Unit[]
+  email     String   @unique
+  password  String
+  role      Role     @default(TENANT)
+  status    Status   @default(pending)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relations
+  landlordProperties Property[]           @relation("LandlordProperties")
+  tenantProfile      Tenant?              @relation("UserTenant")
+  resetTokens        PasswordResetToken[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+}
+
+model Property {
+  id         String   @id @default(cuid())
+  name       String
+  address    String
+  type       String
+  status     String
+  landlordId String?
+  landlord   User?    @relation("LandlordProperties", fields: [landlordId], references: [id])
+  units      Unit[]
+  images     String?  // JSON string or URL
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([landlordId])
 }
 
 model Unit {
-  id          String   @id @default(cuid())
+  id          String               @id @default(cuid())
   label       String
   propertyId  String
-  property    Property @relation(fields: [propertyId], references: [id])
+  property    Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   status      String
   rent        Float
   tenantId    String?
-  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+  tenant      Tenant?              @relation(fields: [tenantId], references: [id])
   leases      Lease[]
   payments    Payment[]
   maintenance MaintenanceRequest[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([propertyId])
+  @@index([tenantId])
 }
 
 model Tenant {
-  id          String   @id @default(cuid())
+  id          String               @id @default(cuid())
+  userId      String?              @unique
+  user        User?                @relation("UserTenant", fields: [userId], references: [id])
   name        String
-  email       String   @unique
+  email       String               @unique
   phone       String?
   status      String
   units       Unit[]
   leases      Lease[]
   payments    Payment[]
   maintenance MaintenanceRequest[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([email])
 }
 
 model Lease {
-  id        String   @id @default(cuid())
-  unitId    String
-  unit      Unit     @relation(fields: [unitId], references: [id])
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  startDate DateTime
-  endDate   DateTime
-  status    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String    @id @default(cuid())
+  unitId         String
+  unit           Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  startDate      DateTime
+  endDate        DateTime
+  rentAmount     Float
+  depositAmount  Float     @default(0)
+  dueDay         Int       @default(1) // 1-31
+  lateFee        Float     @default(0)
+  contractUrl    String?
+  status         String    @default("active") // active, terminated, expired
+  payments       Payment[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([unitId])
+  @@index([tenantId])
 }
 
 model Payment {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  unitId    String
-  unit      Unit     @relation(fields: [unitId], references: [id])
-  amount    Float
-  status    String
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unitId       String
+  unit         Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  leaseId      String?
+  lease        Lease?   @relation(fields: [leaseId], references: [id])
+  amount       Float
+  status       String   @default("pending") // pending, paid, rejected, refunded
+  paymentType  String   @default("rent") // rent, deposit, late_fee, maintenance
+  method       String?  // mpesa, bank_transfer, cash
+  reference    String?  // MPESA Code etc
+  receiptUrl   String?
+  date         DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([unitId])
+  @@index([leaseId])
 }
 
 model MaintenanceRequest {
-  id          String   @id @default(cuid())
-  unitId      String
-  unit        Unit     @relation(fields: [unitId], references: [id])
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  issue       String
-  description String?
-  priority    String
-  status      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  unitId             String
+  unit               Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenantId           String
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  issue              String
+  description        String?
+  priority           String
+  status             String   @default("pending") // pending, in_progress, completed, cancelled
+  assignedTechnician String?
+  cost               Float?
+  invoiceUrl         String?
+  images             String?  // JSON string of images
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([unitId])
+  @@index([tenantId])
 }

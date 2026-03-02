@@ -1,46 +1,71 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 import { PrismaClient } from "@prisma/client";
 
 dotenv.config();
 
 import { supabase } from "./lib/supabase";
+import authRoutes from './routes/auth.routes';
+import adminRoutes from './routes/admin.routes';
+import tenantRoutes from './routes/tenant.routes';
+import landlordRoutes from './routes/landlord.routes';
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// --- Security Middleware ---
+app.use(helmet());
+app.use(cookieParser());
+app.use(cors({
+    origin: process.env.CORS_WHITELIST ? process.env.CORS_WHITELIST.split(',') : true,
+    credentials: true
+}));
 app.use(express.json());
 app.use(morgan("dev"));
+
+// --- Rate Limiting ---
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: "Too many requests from this IP, please try again after 15 minutes"
+});
+app.use("/api/", limiter);
+
+// --- Routes ---
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/tenant', tenantRoutes);
+app.use('/api/landlord', landlordRoutes);
 
 // --- Connection Health Check ---
 app.get("/api/health", async (req, res) => {
     try {
-        const { data, error } = await supabase.from("_migrations").select("*").limit(1);
+        await prisma.$queryRaw`SELECT 1`;
         res.json({
-            database: "online",
-            prisma: "initialized",
-            supabase: error ? "auth_ok_but_error" : "fully_connected",
-            ref: "luicppaodlualsmwbwce"
+            status: "ok",
+            database: "connected",
+            timestamp: new Date().toISOString()
         });
     } catch (error) {
-        res.status(500).json({ status: "error", message: "Failed to connect to Supabase" });
+        res.status(500).json({ status: "error", message: "Database connection failed" });
     }
 });
 
-// --- Dashboard Stats Endpoint (Supabase SDK Fallback) ---
+// --- Legacy Dashboard Stats Endpoint (Supabase SDK Fallback) ---
+// Note: Keeping this for now to avoid breaking existing frontend calls if any
 app.get("/api/dashboard/stats", async (req, res) => {
     try {
-        // These calls use HTTPS (port 443), bypassing the P1001 IPv6 issue!
         const { count: totalProperties } = await supabase.from("Property").select("*", { count: "exact", head: true });
         const { count: totalUnits } = await supabase.from("Unit").select("*", { count: "exact", head: true });
         const { count: occupiedUnits } = await supabase.from("Unit").select("*", { count: "exact", head: true }).eq("status", "occupied");
         const { count: vacantUnits } = await supabase.from("Unit").select("*", { count: "exact", head: true }).eq("status", "vacant");
 
-        // Fetching related tables for the dashboard lists
         const { data: recentPayments } = await supabase
             .from("Payment")
             .select("*, Tenant(name), Unit(label)")
@@ -96,53 +121,17 @@ app.get("/api/dashboard/stats", async (req, res) => {
         });
     } catch (error) {
         console.error("Dashboard Stats Error:", error);
-        res.status(500).json({ error: "Failed to fetch dashboard stats via Supabase REST" });
+        res.status(500).json({ error: "Failed to fetch dashboard stats" });
     }
 });
 
-// --- Property Endpoints ---
-app.get("/api/properties", async (req, res) => {
-    try {
-        const { data: properties, error } = await supabase
-            .from("Property")
-            .select("*, units:Unit(*)");
-
-        if (error) throw error;
-        res.json(properties);
-    } catch (error) {
-        console.error("Fetch Properties Error:", error);
-        res.status(500).json({ error: "Failed to fetch properties via Supabase REST" });
-    }
-});
-
-// --- Unit Endpoints ---
-app.get("/api/units", async (req, res) => {
-    try {
-        const { data: units, error } = await supabase
-            .from("Unit")
-            .select("*, property:Property(*), tenant:Tenant(*)");
-
-        if (error) throw error;
-        res.json(units);
-    } catch (error) {
-        console.error("Fetch Units Error:", error);
-        res.status(500).json({ error: "Failed to fetch units via Supabase REST" });
-    }
-});
-
-// --- Tenant Endpoints ---
-app.get("/api/tenants", async (req, res) => {
-    try {
-        const { data: tenants, error } = await supabase
-            .from("Tenant")
-            .select("*, units:Unit(*)");
-
-        if (error) throw error;
-        res.json(tenants);
-    } catch (error) {
-        console.error("Fetch Tenants Error:", error);
-        res.status(500).json({ error: "Failed to fetch tenants via Supabase REST" });
-    }
+// --- Centralized Error Handler ---
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    console.error(err.stack);
+    const status = err.status || 500;
+    res.status(status).json({
+        error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
+    });
 });
 
 export { app, prisma };
