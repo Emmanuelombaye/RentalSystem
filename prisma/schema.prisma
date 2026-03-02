@@ -49,6 +49,97 @@ model PasswordResetToken {
   @@index([token])
 }
 
+
+model Tenant {
+  id          String               @id @default(cuid())
+  userId      String?              @unique
+  user        User?                @relation("UserTenant", fields: [userId], references: [id])
+  name        String
+  email       String               @unique
+  phone       String?
+  status      String
+  units       Unit[]
+  leases      Lease[]
+  payments    Payment[]
+  maintenance MaintenanceRequest[]
+  riskScores  TenantRiskScore[]
+  conversations AIConversation[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([email])
+}
+
+model AIConversation {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  message   String
+  response  String
+  type      String   // maintenance, payment, general, guest
+  status    String   // auto_replied, ai_handled, manual_intervention
+  context   String?  // JSON string for AI context
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model TenantRiskScore {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  score     Int      // 0-100
+  level     String   // Low, Medium, High
+  factors   String?  // JSON string of risk factors
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model MaintenancePrediction {
+  id          String   @id @default(cuid())
+  unitId      String
+  unit        Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  component   String   // AC, Pump, Roof, etc.
+  probability Float    // 0.0 - 1.0
+  reason      String
+  suggestedAt DateTime
+  status      String   @default("pending") // pending, addressed, ignored
+  createdAt   DateTime @default(now())
+
+  @@index([unitId])
+}
+
+model SecurityAlert {
+  id          String   @id @default(cuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  type        String   // unusual_motion, door_opened, sound_detected
+  severity    String   // low, medium, high, critical
+  snapshotUrl String?
+  isResolved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([propertyId])
+}
+
+model MpesaTransaction {
+  id            String   @id @default(cuid())
+  merchantId    String   // MerchantRequestID
+  checkoutId    String   @unique // CheckoutRequestID
+  amount        Float
+  phone         String
+  status        String   @default("pending") // pending, completed, failed
+  mpesaReceipt  String?  @unique
+  resultDesc    String?
+  transactionAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([checkoutId])
+}
+
 model Property {
   id         String   @id @default(cuid())
   name       String
@@ -58,6 +149,7 @@ model Property {
   landlordId String?
   landlord   User?    @relation("LandlordProperties", fields: [landlordId], references: [id])
   units      Unit[]
+  securityAlerts SecurityAlert[]
   images     String?  // JSON string or URL
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -77,30 +169,12 @@ model Unit {
   leases      Lease[]
   payments    Payment[]
   maintenance MaintenanceRequest[]
+  predictions MaintenancePrediction[]
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
   @@index([propertyId])
   @@index([tenantId])
-}
-
-model Tenant {
-  id          String               @id @default(cuid())
-  userId      String?              @unique
-  user        User?                @relation("UserTenant", fields: [userId], references: [id])
-  name        String
-  email       String               @unique
-  phone       String?
-  status      String
-  units       Unit[]
-  leases      Lease[]
-  payments    Payment[]
-  maintenance MaintenanceRequest[]
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-
-  @@index([userId])
-  @@index([email])
 }
 
 model Lease {
