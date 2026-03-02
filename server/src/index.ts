@@ -14,6 +14,7 @@ import authRoutes from './routes/auth.routes';
 import adminRoutes from './routes/admin.routes';
 import tenantRoutes from './routes/tenant.routes';
 import landlordRoutes from './routes/landlord.routes';
+import aiRoutes from './routes/ai.routes';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -42,6 +43,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/tenant', tenantRoutes);
 app.use('/api/landlord', landlordRoutes);
+app.use('/api/ai', aiRoutes);
 
 // --- Connection Health Check ---
 app.get("/api/health", async (req, res) => {

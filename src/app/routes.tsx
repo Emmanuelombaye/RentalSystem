@@ -19,6 +19,7 @@ import { Billing } from "./pages/billing/Billing";
 import { Settings } from "./pages/settings/Settings";
 import { NotFound } from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { DianiRentAI } from "./pages/diani-rent-ai/DianiRentAI";
 
 export const router = createBrowserRouter([
   {
@@ -54,6 +55,7 @@ export const router = createBrowserRouter([
           { path: "tenant-portal", Component: TenantPortal },
           { path: "billing", Component: Billing },
           { path: "settings", Component: Settings },
+          { path: "diani-rent-ai", Component: DianiRentAI },
         ],
       },
       {

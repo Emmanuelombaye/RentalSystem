@@ -38,4 +38,13 @@ export const api = {
     tenants: {
         getAll: () => fetchWithAuth("/tenants"),
     },
+    ai: {
+        getStats: () => fetchWithAuth("/ai/stats"),
+        getConversations: () => fetchWithAuth("/ai/conversations"),
+        getRiskScores: () => fetchWithAuth("/ai/risk-scores"),
+        getPredictions: () => fetchWithAuth("/ai/predictions"),
+        getAlerts: () => fetchWithAuth("/ai/alerts"),
+        stkPush: (data: { amount: number; phone: string; tenantId: string }) =>
+            fetchWithAuth("/ai/mpesa/stk-push", { method: "POST", body: JSON.stringify(data) }),
+    },
 };
